@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Universal Image Compressor</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: linear-gradient(135deg, #000428, #004e92);
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      color: #fff;
+    }
+
+    .container {
+      background: rgba(255, 255, 255, 0.08);
+      padding: 30px;
+      border-radius: 20px;
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
+      text-align: center;
+      width: 400px;
+      backdrop-filter: blur(12px);
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* 🔥 RGB Border Animation */
+    .container::before {
+      content: "";
+      position: absolute;
+      top: -2px;
+      left: -2px;
+      right: -2px;
+      bottom: -2px;
+      border-radius: 22px;
+      padding: 2px;
+      background: linear-gradient(270deg, 
+        #ff0000, #ff7300, #fffb00, 
+        #48ff00, #00ffd5, #002bff, 
+        #7a00ff, #ff00ab, #ff0000);
+      background-size: 200% 200%;
+      animation: glow 8s linear infinite;
+      z-index: -1;
+    }
+
+    @keyframes glow {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    h2 {
+      margin-bottom: 20px;
+      font-size: 24px;
+      font-weight: bold;
+      color: #fff;
+      text-shadow: 0 0 10px rgba(0,255,255,0.7);
+    }
+
+    input[type="file"] {
+      display: none;
+    }
+
+    label, button {
+      display: inline-block;
+      margin-top: 10px;
+      padding: 12px 20px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: bold;
+      font-size: 15px;
+      border: none;
+      transition: 0.3s;
+    }
+
+    label {
+      background: #007bff;
+      color: #fff;
+    }
+    label:hover {
+      background: #0056b3;
+      box-shadow: 0 0 15px #007bff;
+    }
+
+    button {
+      background: #28a745;
+      color: #fff;
+    }
+    button:hover {
+      background: #1e7e34;
+      box-shadow: 0 0 15px #28a745;
+    }
+
+    #output {
+      margin-top: 20px;
+    }
+
+    a {
+      display: inline-block;
+      margin-top: 12px;
+      background: #ff9800;
+      padding: 10px 15px;
+      border-radius: 8px;
+      color: white;
+      text-decoration: none;
+      font-weight: bold;
+      transition: 0.3s;
+    }
+    a:hover {
+      background: #e68900;
+      box-shadow: 0 0 15px #ff9800;
+    }
+
+    /* 🎚️ Slider styling */
+    .slider-container {
+      margin-top: 15px;
+      text-align: center;
+    }
+    input[type=range] {
+      -webkit-appearance: none;
+      width: 100%;
+      height: 8px;
+      border-radius: 5px;
+      background: linear-gradient(90deg, #007bff, #00ffcc);
+      outline: none;
+      opacity: 0.9;
+      transition: opacity 0.2s;
+    }
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #fff;
+      border: 2px solid #007bff;
+      cursor: pointer;
+      box-shadow: 0 0 10px #007bff;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>🌍 Universal Image Compressor</h2>
+    <input type="file" id="upload" accept="image/*,.heic,.tiff,.bmp,.gif" />
+    <label for="upload">Choose Image</label>
+    <div class="slider-container">
+      <p>Compression Quality: <span id="qualityValue">70</span>%</p>
+      <input type="range" id="qualitySlider" min="10" max="100" value="70">
+    </div>
+    <button id="compressBtn">Compress</button>
+    <div id="output"></div>
+  </div>
+
+  <script>
+    let file;
+    let quality = 0.7;
+
+    document.getElementById('upload').addEventListener('change', (e) => {
+      file = e.target.files[0];
+    });
+
+    document.getElementById("qualitySlider").addEventListener("input", (e) => {
+      quality = e.target.value / 100;
+      document.getElementById("qualityValue").innerText = e.target.value;
+    });
+
+    document.getElementById('compressBtn').addEventListener('click', () => {
+      if (!file) return alert("Please select an image first!");
+
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = (event) => {
+        const img = new Image();
+        img.src = event.target.result;
+
+        img.onload = () => {
+          const canvas = document.createElement("canvas");
+          const ctx = canvas.getContext("2d");
+
+          // Resize to max 1000px
+          const maxSize = 1000;
+          let width = img.width;
+          let height = img.height;
+
+          if (width > height) {
+            if (width > maxSize) {
+              height *= maxSize / width;
+              width = maxSize;
+            }
+          } else {
+            if (height > maxSize) {
+              width *= maxSize / height;
+              height = maxSize;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          ctx.drawImage(img, 0, 0, width, height);
+
+          // Compress with slider quality
+          canvas.toBlob(
+            (blob) => {
+              const beforeSize = (file.size / 1024).toFixed(1);
+              const afterSize = (blob.size / 1024).toFixed(1);
+
+              const output = document.getElementById("output");
+              output.innerHTML = `
+                <p>Original: ${beforeSize} KB</p>
+                <p>Compressed: ${afterSize} KB (Quality: ${Math.round(quality*100)}%)</p>
+                <img src="${URL.createObjectURL(blob)}" width="100%" style="border-radius:12px; margin-top:10px; box-shadow:0 0 15px rgba(0,255,255,0.6);" />
+              `;
+
+              const downloadLink = document.createElement("a");
+              downloadLink.href = URL.createObjectURL(blob);
+              downloadLink.download = "compressed_" + file.name.replace(/\.[^/.]+$/, ".jpg");
+              downloadLink.innerText = "⬇ Download Compressed Image";
+              output.appendChild(downloadLink);
+            },
+            "image/jpeg",
+            quality
+          );
+        };
+      };
+    });
+  </script>
+</body>
+</html>
